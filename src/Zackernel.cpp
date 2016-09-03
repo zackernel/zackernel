@@ -23,54 +23,40 @@ SOFTWARE.
 */
 
 #include <Zackernel.h>
+#include <Arduino.h>
 
-#define LED1 9    // I/O Port of LED 1
-#define LED2 10   // I/O Port of LED 2
-#define LED3 11   // I/O Port of LED 3
-
-#define TIC 100   // Unit Time of Blinking (msec)
-
-void setup() {
-  pinMode(LED1, OUTPUT);
-  pinMode(LED2, OUTPUT);
-  pinMode(LED3, OUTPUT);
-  Zackernel::init(); // initializing Zackernel
+static void Zackernel::init() {
+  Schedule::init();
 }
 
-// Blink LED1 using sleep()
-void blink_led1() {
-  digitalWrite(LED1, HIGH);
-  sleep(TIC, [&] {
-     digitalWrite(LED1, LOW);
-     sleep(TIC, [&] {
-       digitalWrite(LED1, HIGH);
-       sleep(TIC, [&] {
-         digitalWrite(LED1, LOW);
-         sleep(TIC, [&] {});
-       });
-     });
-  });
+void print_queue() {
+  Serial.print("q:");
+  for(Schedule *s = Schedule::first(); !(s->is_end()); s = s->next()) {
+     Serial.print(s->delay_time());
+     Serial.print(','); 
+  }
+  Serial.print('\n');
 }
 
-// Blink LED2 using sleep()
-void blink_led2() {
-  digitalWrite(LED2, HIGH);
-  sleep(TIC * 2, [&] {
-     digitalWrite(LED2, LOW);
-     sleep(TIC * 2, [&] {});
-  });
+void dispatch() {
+  while(!Schedule::is_empty()) {
+    #ifdef DEBUG
+    print_queue();
+    #endif
+    Schedule *s = Schedule::pull();
+    s->wait();
+    s->call();
+    delete s;
+  }  
 }
 
-// Blink LED3 using sleep()
-void blink_led3() {
-  digitalWrite(LED3, LOW);
-  sleep(TIC * 2, [&] {
-     digitalWrite(LED3, HIGH);
-     sleep(TIC * 2, [&] {});
-  });
+void sleep(int time, vl::Func<void(void)> func) {
+  Schedule::add(time, func);
+  dispatch();
 }
 
-// Loop and Fork Tasks for blinking LED1, LED2 and LED3
-void loop() {
-  fork(blink_led1, [&] { fork(blink_led2, blink_led3); });
+void fork(vl::Func<void(void)> func1, vl::Func<void(void)> func2) {
+  Schedule::add(0, func1);
+  Schedule::add(0, func2);
+  dispatch();
 }
