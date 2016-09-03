@@ -24,8 +24,8 @@ void setup() {
   Zackernel::init(); // initializing Zackernel
 }
 
-// Blinking LED1 using sleep()
-void led1() {
+// Blink LED1 using sleep()
+void blink_led1() {
   digitalWrite(LED1, HIGH);
   sleep(TIC, [&] {
      digitalWrite(LED1, LOW);
@@ -39,8 +39,8 @@ void led1() {
   });
 }
 
-// Blinking LED2 using sleep()
-void led2() {
+// Blink LED2 using sleep()
+void blink_led2() {
   digitalWrite(LED2, HIGH);
   sleep(TIC * 2, [&] {
      digitalWrite(LED2, LOW);
@@ -48,8 +48,8 @@ void led2() {
   });
 }
 
-// Blinking LED3 using sleep()
-void led3() {
+// Blink LED3 using sleep()
+void blink_led3() {
   digitalWrite(LED3, LOW);
   sleep(TIC * 2, [&] {
      digitalWrite(LED3, HIGH);
@@ -59,7 +59,7 @@ void led3() {
 
 // Loop and Fork Tasks for blinking LED1, LED2 and LED3
 void loop() {
-  fork(led1, [&] { fork(led2, led3); });
+  fork(blink_led1, [&] { fork(blink_led2, blink_led3); });
 }
 ```
 
