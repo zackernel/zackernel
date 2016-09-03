@@ -27,12 +27,12 @@ SOFTWARE.
 
 void null_func() {}
 
-static void Schedule::init() {
+void Schedule::init() {
   _queue = new Schedule(0, null_func);
   _queue->link(new Schedule(INT_MAX, null_func));
 }
 
-static Schedule *Schedule::queue() {
+Schedule *Schedule::queue() {
   return _queue;
 }
 
@@ -53,11 +53,11 @@ int Schedule::delay_time() {
   return _delay_time;
 }
 
-static Schedule *Schedule::first() {
+Schedule *Schedule::first() {
   return _queue->_next;
 }
 
-static int Schedule::is_empty() {
+int Schedule::is_empty() {
   return _queue->_next->is_end();
 }
 
@@ -77,7 +77,7 @@ void Schedule::call() {
   _function();
 }
 
-static void Schedule::add(int delay_time, vl::Func<void(void)> func) {
+void Schedule::add(int delay_time, vl::Func<void(void)> func) {
   Schedule *s;
   for (s = queue(); delay_time >= s->_delay_time; s = s->_next) {
     delay_time -= s->_delay_time;
@@ -91,7 +91,7 @@ static void Schedule::add(int delay_time, vl::Func<void(void)> func) {
   }
 }
 
-static Schedule *Schedule::pull() {
+Schedule *Schedule::pull() {
   Schedule *ret_value = queue()->_next;
   if (ret_value->is_end()) {
      return ret_value;

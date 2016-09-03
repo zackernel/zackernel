@@ -25,7 +25,7 @@ SOFTWARE.
 #include <Zackernel.h>
 #include <Arduino.h>
 
-static void Zackernel::init() {
+void Zackernel::init() {
   Schedule::init();
 }
 
