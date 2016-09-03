@@ -6,6 +6,10 @@ Now, Zackernel works on the following environments:
 
 * Arduino
 
+Zackernel needs the following software:
+
+* [Vlpp](https://github.com/vczh-libraries/Vlpp) ([for Arduino](https://github.com/marcusrugger/functional-vlpp))
+
 ## Sample code
 
 ```c++:blink_3leds.cpp
