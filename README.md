@@ -11,9 +11,9 @@ Now, Zackernel works on the following environments:
 ```c++:blink_3leds.cpp
 #include <Zackernel.h>
 
-#define LED1 9    // I/O Port for LED 1
-#define LED2 10   // I/O Port for LED 1
-#define LED3 11   // I/O Port for LED 1
+#define LED1 9    // I/O Port of LED 1
+#define LED2 10   // I/O Port of LED 2
+#define LED3 11   // I/O Port of LED 3
 
 #define TIC 100   // Unit Time of Blinking (msec)
 
