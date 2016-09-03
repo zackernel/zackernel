@@ -1,3 +1,4 @@
+/*
 MIT License
 
 Copyright (c) 2016 Susumu Yamazaki
@@ -19,3 +20,27 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+*/
+
+#ifndef ZACKERNEL_H
+#define ZACKERNEL_H
+
+#include <functional-vlpp.h>
+#include <limits.h>
+#include <Schedule.h>
+
+
+class Zackernel {
+public:
+  static void init();
+};
+
+void print_queue();
+
+void dispatch();
+
+void sleep(int time, vl::Func<void(void)> func);
+
+void fork(vl::Func<void(void)> func1, vl::Func<void(void)> func2);
+
+#endif // ZACKERNEL_H

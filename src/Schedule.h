@@ -1,3 +1,4 @@
+/*
 MIT License
 
 Copyright (c) 2016 Susumu Yamazaki
@@ -19,3 +20,52 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+*/
+
+#ifndef ZCK_SCHEDULE_H
+#define ZCK_SCHEDULE_H
+
+#include <functional-vlpp.h>
+#include <limits.h>
+
+void null_func();
+
+class Schedule {
+  private:
+    static Schedule *_queue;
+    int _delay_time;
+    Schedule *_prev;
+    Schedule *_next;
+    vl::Func<void(void)> _function;
+
+  public:
+    static void init();
+
+    static Schedule *queue();
+
+    static Schedule *first();
+
+    static int is_empty();
+
+    static void add(int delay_time, vl::Func<void(void)> func);
+
+    static Schedule *pull();
+
+    Schedule(int delay_time, vl::Func<void(void)> func);
+
+    void link(Schedule *next);
+
+    int delay_time();
+
+    Schedule *next();
+
+    Schedule *prev();
+
+    void wait();
+
+    void call();
+
+    int is_end();
+};
+
+#endif // ZCK_SCHEDULE_H

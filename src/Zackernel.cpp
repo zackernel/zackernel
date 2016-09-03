@@ -1,3 +1,4 @@
+/*
 MIT License
 
 Copyright (c) 2016 Susumu Yamazaki
@@ -19,3 +20,43 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+*/
+
+#include <Zackernel.h>
+#include <Arduino.h>
+
+static void Zackernel::init() {
+  Schedule::init();
+}
+
+void print_queue() {
+  Serial.print("q:");
+  for(Schedule *s = Schedule::first(); !(s->is_end()); s = s->next()) {
+     Serial.print(s->delay_time());
+     Serial.print(','); 
+  }
+  Serial.print('\n');
+}
+
+void dispatch() {
+  while(!Schedule::is_empty()) {
+    #ifdef DEBUG
+    print_queue();
+    #endif
+    Schedule *s = Schedule::pull();
+    s->wait();
+    s->call();
+    delete s;
+  }  
+}
+
+void sleep(int time, vl::Func<void(void)> func) {
+  Schedule::add(time, func);
+  dispatch();
+}
+
+void fork(vl::Func<void(void)> func1, vl::Func<void(void)> func2) {
+  Schedule::add(0, func1);
+  Schedule::add(0, func2);
+  dispatch();
+}
