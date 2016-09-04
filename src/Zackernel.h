@@ -35,7 +35,7 @@ public:
   static void init();
 };
 
-void print_queue();
+void printQueue();
 
 void dispatch();
 

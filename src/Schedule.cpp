@@ -25,19 +25,19 @@ SOFTWARE.
 #include <Arduino.h>
 #include <Schedule.h>
 
-void null_func() {}
+void nullFunc() {}
 
 void Schedule::init() {
-  _queue = new Schedule(0, null_func);
-  _queue->link(new Schedule(INT_MAX, null_func));
+  _queue = new Schedule(0, nullFunc);
+  _queue->link(new Schedule(INT_MAX, nullFunc));
 }
 
 Schedule *Schedule::queue() {
   return _queue;
 }
 
-Schedule::Schedule(int delay_time, vl::Func<void(void)> func) {
-  this->_delay_time = delay_time;
+Schedule::Schedule(int delayTime, vl::Func<void(void)> func) {
+  this->_delayTime = delayTime;
   this->_function = func;
   this->_prev = NULL;
   this->_next = NULL;
@@ -49,16 +49,16 @@ void Schedule::link(Schedule *next) {
 }
 
 
-int Schedule::delay_time() {
-  return _delay_time;
+int Schedule::delayTime() {
+  return _delayTime;
 }
 
 Schedule *Schedule::first() {
   return _queue->_next;
 }
 
-int Schedule::is_empty() {
-  return _queue->_next->is_end();
+int Schedule::isEmpty() {
+  return _queue->_next->isEnd();
 }
 
 Schedule *Schedule::next() {
@@ -70,41 +70,41 @@ Schedule *Schedule::prev() {
 }
 
 void Schedule::wait() {
-  delay(this->_delay_time);
+  delay(this->_delayTime);
 }
 
 void Schedule::call() {
   _function();
 }
 
-void Schedule::add(int delay_time, vl::Func<void(void)> func) {
+void Schedule::add(int delayTime, vl::Func<void(void)> func) {
   Schedule *s;
-  for (s = queue(); delay_time >= s->_delay_time; s = s->_next) {
-    delay_time -= s->_delay_time;
+  for (s = queue(); delayTime >= s->_delayTime; s = s->_next) {
+    delayTime -= s->_delayTime;
   }
-  Schedule *n = new Schedule(delay_time, func);
+  Schedule *n = new Schedule(delayTime, func);
   Schedule *p = s->_prev;
   p->link(n);
   n->link(s);
-  if (!s->is_end()) {
-    s->_delay_time -= delay_time;
+  if (!s->isEnd()) {
+    s->_delayTime -= delayTime;
   }
 }
 
 Schedule *Schedule::pull() {
-  Schedule *ret_value = queue()->_next;
-  if (ret_value->is_end()) {
-     return ret_value;
+  Schedule *retValue = queue()->_next;
+  if (retValue->isEnd()) {
+     return retValue;
   }
-  Schedule *p = ret_value->_prev;
-  Schedule *n = ret_value->_next;
+  Schedule *p = retValue->_prev;
+  Schedule *n = retValue->_next;
   p->link(n);
-  ret_value->_next = NULL;
-  ret_value->_prev = NULL;
-  return ret_value;
+  retValue->_next = NULL;
+  retValue->_prev = NULL;
+  return retValue;
 }
 
-int Schedule::is_end() {
+int Schedule::isEnd() {
   return (this->_next == NULL);
 }
 
