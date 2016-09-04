@@ -28,12 +28,12 @@ SOFTWARE.
 #include <functional-vlpp.h>
 #include <limits.h>
 
-void null_func();
+void nullFunc();
 
 class Schedule {
   private:
     static Schedule *_queue;
-    int _delay_time;
+    int _delayTime;
     Schedule *_prev;
     Schedule *_next;
     vl::Func<void(void)> _function;
@@ -45,17 +45,17 @@ class Schedule {
 
     static Schedule *first();
 
-    static int is_empty();
+    static int isEmpty();
 
-    static void add(int delay_time, vl::Func<void(void)> func);
+    static void add(int delayTime, vl::Func<void(void)> func);
 
     static Schedule *pull();
 
-    Schedule(int delay_time, vl::Func<void(void)> func);
+    Schedule(int delayTime, vl::Func<void(void)> func);
 
     void link(Schedule *next);
 
-    int delay_time();
+    int delayTime();
 
     Schedule *next();
 
@@ -65,7 +65,7 @@ class Schedule {
 
     void call();
 
-    int is_end();
+    int isEnd();
 };
 
 #endif // ZCK_SCHEDULE_H

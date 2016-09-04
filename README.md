@@ -15,21 +15,31 @@ Zackernel needs the following software:
 ```c++:blink_3leds.cpp
 #include <Zackernel.h>
 
-#define LED1 9    // I/O Port of LED 1
-#define LED2 10   // I/O Port of LED 2
-#define LED3 11   // I/O Port of LED 3
+const int LED1 = 9;    // I/O Port of LED 1
+const int LED2 = 10;   // I/O Port of LED 2
+const int LED3 = 11;   // I/O Port of LED 3
 
-#define TIC 100   // Unit Time of Blinking (msec)
+const int TIC = 100;   // Unit Time of Blinking (msec)
 
 void setup() {
+  // setup pinMode of LEDs
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
-  Zackernel::init(); // initializing Zackernel
+
+  // initializing Zackernel
+  Zackernel::init();
 }
 
-// Blink LED1 using sleep()
-void blink_led1() {
+// Loop and Fork Tasks for blinking LED1, LED2 and LED3
+void loop() {
+  // fork subroutines (blinkLed1, blinkLed2, blinkLed3)
+  // these will be running concurrently.
+  fork(blinkLed1, [&] { fork(blinkLed2, blinkLed3); });
+}
+
+// Blink LED1 with sleeping and awaking
+void blinkLed1() {
   digitalWrite(LED1, HIGH);
   sleep(TIC, [&] {
      digitalWrite(LED1, LOW);
@@ -43,8 +53,8 @@ void blink_led1() {
   });
 }
 
-// Blink LED2 using sleep()
-void blink_led2() {
+// Blink LED2 with sleeping and awaking
+void blinkLed2() {
   digitalWrite(LED2, HIGH);
   sleep(TIC * 2, [&] {
      digitalWrite(LED2, LOW);
@@ -52,18 +62,13 @@ void blink_led2() {
   });
 }
 
-// Blink LED3 using sleep()
-void blink_led3() {
+// Blink LED3 with sleeping and awaking
+void blinkLed3() {
   digitalWrite(LED3, LOW);
   sleep(TIC * 2, [&] {
      digitalWrite(LED3, HIGH);
      sleep(TIC * 2, [&] {});
   });
-}
-
-// Loop and Fork Tasks for blinking LED1, LED2 and LED3
-void loop() {
-  fork(blink_led1, [&] { fork(blink_led2, blink_led3); });
 }
 ```
 

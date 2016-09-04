@@ -29,19 +29,19 @@ void Zackernel::init() {
   Schedule::init();
 }
 
-void print_queue() {
+void printQueue() {
   Serial.print("q:");
-  for(Schedule *s = Schedule::first(); !(s->is_end()); s = s->next()) {
-     Serial.print(s->delay_time());
+  for(Schedule *s = Schedule::first(); !(s->isEnd()); s = s->next()) {
+     Serial.print(s->delayTime());
      Serial.print(','); 
   }
   Serial.print('\n');
 }
 
 void dispatch() {
-  while(!Schedule::is_empty()) {
+  while(!Schedule::isEmpty()) {
     #ifdef DEBUG
-    print_queue();
+    printQueue();
     #endif
     Schedule *s = Schedule::pull();
     s->wait();
