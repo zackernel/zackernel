@@ -40,9 +40,6 @@ void printQueue() {
 
 void dispatch() {
   while(!Schedule::isEmpty()) {
-    #ifdef DEBUG
-    printQueue();
-    #endif
     Schedule *s = Schedule::pull();
     s->wait();
     s->call();
