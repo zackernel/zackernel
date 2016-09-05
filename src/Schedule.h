@@ -33,7 +33,7 @@ void nullFunc();
 class Schedule {
   private:
     static Schedule *_queue;
-    int _delayTime;
+    unsigned long _delayTime;
     Schedule *_prev;
     Schedule *_next;
     vl::Func<void(void)> _function;
@@ -47,15 +47,15 @@ class Schedule {
 
     static int isEmpty();
 
-    static void add(int delayTime, vl::Func<void(void)> func);
+    static void add(unsigned long delayTime, vl::Func<void(void)> func);
 
     static Schedule *pull();
 
-    Schedule(int delayTime, vl::Func<void(void)> func);
+    Schedule(unsigned long delayTime, vl::Func<void(void)> func);
 
     void link(Schedule *next);
 
-    int delayTime();
+    unsigned long delayTime();
 
     Schedule *next();
 
