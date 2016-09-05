@@ -29,14 +29,14 @@ void nullFunc() {}
 
 void Schedule::init() {
   _queue = new Schedule(0, nullFunc);
-  _queue->link(new Schedule(INT_MAX, nullFunc));
+  _queue->link(new Schedule(ULONG_MAX, nullFunc));
 }
 
 Schedule *Schedule::queue() {
   return _queue;
 }
 
-Schedule::Schedule(int delayTime, vl::Func<void(void)> func) {
+Schedule::Schedule(unsigned long delayTime, vl::Func<void(void)> func) {
   this->_delayTime = delayTime;
   this->_function = func;
   this->_prev = NULL;
@@ -49,7 +49,7 @@ void Schedule::link(Schedule *next) {
 }
 
 
-int Schedule::delayTime() {
+unsigned long Schedule::delayTime() {
   return _delayTime;
 }
 
@@ -77,7 +77,7 @@ void Schedule::call() {
   _function();
 }
 
-void Schedule::add(int delayTime, vl::Func<void(void)> func) {
+void Schedule::add(unsigned long delayTime, vl::Func<void(void)> func) {
   Schedule *s;
   for (s = queue(); delayTime >= s->_delayTime; s = s->_next) {
     delayTime -= s->_delayTime;
