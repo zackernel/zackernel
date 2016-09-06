@@ -27,8 +27,8 @@ void setup() {
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
 
-  // initializing Zackernel
-  Zackernel::init();
+  // initializing Zackernel (unit time is msec)
+  Zackernel::init(false);
 }
 
 // Loop and Fork Tasks for blinking LED1, LED2 and LED3

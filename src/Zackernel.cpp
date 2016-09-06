@@ -25,8 +25,8 @@ SOFTWARE.
 #include <Zackernel.h>
 #include <Arduino.h>
 
-void Zackernel::init() {
-  Schedule::init();
+void Zackernel::init(bool isMicros) {
+  Schedule::init(isMicros);
 }
 
 void printQueue() {
