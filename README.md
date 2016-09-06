@@ -19,7 +19,7 @@ const int LED1 = 9;    // I/O Port of LED 1
 const int LED2 = 10;   // I/O Port of LED 2
 const int LED3 = 11;   // I/O Port of LED 3
 
-const int TIC = 100;   // Unit Time of Blinking (msec)
+const unsigned long TIC = 100;   // Unit Time of Blinking (msec)
 
 void setup() {
   // setup pinMode of LEDs
