@@ -33,13 +33,19 @@ void nullFunc();
 class Schedule {
   private:
     static Schedule *_queue;
+    static bool _isMicros;
+    static unsigned long _prevTime;
     unsigned long _delayTime;
     Schedule *_prev;
     Schedule *_next;
     vl::Func<void(void)> _function;
 
   public:
-    static void init();
+    static void init(bool isMicros);
+
+    static bool isMicros();
+
+    static unsigned long currentTime();
 
     static Schedule *queue();
 

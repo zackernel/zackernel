@@ -32,7 +32,7 @@ SOFTWARE.
 
 class Zackernel {
 public:
-  static void init();
+  static void init(bool isMicros);
 };
 
 void printQueue();
