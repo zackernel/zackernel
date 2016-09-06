@@ -25,11 +25,25 @@ SOFTWARE.
 #include <Arduino.h>
 #include <Schedule.h>
 
+Schedule* Schedule::_queue;
+bool Schedule::_isMicros;
+unsigned long Schedule::_prevTime;
+
 void nullFunc() {}
 
-void Schedule::init() {
+void Schedule::init(bool isMicros) {
+  _isMicros = isMicros;
+  _prevTime = currentTime();
   _queue = new Schedule(0, nullFunc);
   _queue->link(new Schedule(ULONG_MAX, nullFunc));
+}
+
+bool Schedule::isMicros() {
+  return _isMicros;
+}
+
+unsigned long Schedule::currentTime() {
+  return _isMicros ? micros() : millis();
 }
 
 Schedule *Schedule::queue() {
@@ -47,7 +61,6 @@ void Schedule::link(Schedule *next) {
   this->_next = next;
   next->_prev = this;
 }
-
 
 unsigned long Schedule::delayTime() {
   return _delayTime;
@@ -70,7 +83,17 @@ Schedule *Schedule::prev() {
 }
 
 void Schedule::wait() {
-  delay(this->_delayTime);
+  unsigned long current = currentTime();
+  long adjustment = current - _prevTime;
+  long delayTime = this->_delayTime - adjustment;
+  if(delayTime > 0) {
+    if(_isMicros) {
+      delayMicroseconds(delayTime);
+    } else {
+      delay(delayTime);
+    }
+  }
+  _prevTime = currentTime();
 }
 
 void Schedule::call() {
@@ -108,4 +131,3 @@ int Schedule::isEnd() {
   return (this->_next == NULL);
 }
 
-Schedule* Schedule::_queue;
