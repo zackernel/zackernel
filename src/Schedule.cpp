@@ -105,6 +105,10 @@ void Schedule::add(unsigned long delayTime, vl::Func<void(void)> func) {
   for (s = queue(); delayTime >= s->_delayTime; s = s->_next) {
     delayTime -= s->_delayTime;
   }
+  while(s->_delayTime == 0) {
+    s = s->_next;
+  }
+
   Schedule *n = new Schedule(delayTime, func);
   Schedule *p = s->_prev;
   p->link(n);

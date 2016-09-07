@@ -39,8 +39,10 @@ void printQueue();
 
 void dispatch();
 
-void sleep(int time, vl::Func<void(void)> func);
+void sleep(unsigned long time, vl::Func<void(void)> func);
 
 void fork(vl::Func<void(void)> func1, vl::Func<void(void)> func2);
+
+void zLoop(vl::Func<void(void)> func);
 
 #endif // ZACKERNEL_H

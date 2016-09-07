@@ -47,7 +47,7 @@ void dispatch() {
   }  
 }
 
-void sleep(int time, vl::Func<void(void)> func) {
+void sleep(unsigned long time, vl::Func<void(void)> func) {
   Schedule::add(time, func);
   dispatch();
 }
@@ -57,3 +57,9 @@ void fork(vl::Func<void(void)> func1, vl::Func<void(void)> func2) {
   Schedule::add(0, func2);
   dispatch();
 }
+
+void zLoop(vl::Func<void(void)> func) {
+  Schedule::add(0, func);
+  //sleep(0, zLoop);
+}
+
