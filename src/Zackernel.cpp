@@ -59,7 +59,5 @@ void fork(vl::Func<void(void)> func1, vl::Func<void(void)> func2) {
 }
 
 void zLoop(vl::Func<void(void)> func) {
-  Schedule::add(0, func);
-  //sleep(0, zLoop);
 }
 
