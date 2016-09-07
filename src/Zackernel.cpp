@@ -47,7 +47,7 @@ void dispatch() {
   }  
 }
 
-void sleep(int time, vl::Func<void(void)> func) {
+void sleep(unsigned long time, vl::Func<void(void)> func) {
   Schedule::add(time, func);
   dispatch();
 }
