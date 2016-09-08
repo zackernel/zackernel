@@ -46,7 +46,6 @@ class Zackernel {
     static Schedule* _sleepQ;
     static volatile bool _dispatching;
     static Schedule* _current;
-    static Schedule* _waitingIfSleep;
 
     static Schedule* first();
     static void addLast(Schedule* s);
