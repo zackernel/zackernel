@@ -68,9 +68,9 @@ void blinkLed2() {
 void blinkLed3() {
   zLoop([&] {
     digitalWrite(LED3, LOW);
-    sleep(TIC * 3, [&] {
+    sleep(TIC * 2, [&] {
        digitalWrite(LED3, HIGH);
-       sleep(TIC * 3, [&] {});
+       sleep(TIC * 2, [&] {});
     });
   });
 }
