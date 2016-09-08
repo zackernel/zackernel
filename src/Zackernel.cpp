@@ -120,7 +120,6 @@ Schedule* Zackernel::dispatchBody() {
 void Zackernel::sleep(unsigned long timeToSleep, VFunc block) {
   Schedule* p = _sleepQ->next();
   if (!p->hasNext()) {
-    Zackernel::print();
     Schedule* s = Schedule::newVFuncSch(block, "s", timeToSleep);
     if (_current != NULL) {
       s->setWakeUp(_current->toFire());
@@ -130,7 +129,6 @@ void Zackernel::sleep(unsigned long timeToSleep, VFunc block) {
     if (p->hasNext()) {
       p->setTimeToSleep(timeToSleep - (p->prev())->timeToSleep());
     }
-    Zackernel::print();
     dispatch();
     return;
   }
