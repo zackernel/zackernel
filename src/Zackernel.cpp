@@ -46,7 +46,7 @@ void Zackernel::init(bool isMicros) {
 void Zackernel::print(char mark) {
   Serial.print(mark);
   Serial.print(':');
-  for (Schedule* p = first(); p->hasNext(); p = p->next()) {
+  for (Schedule* p = firstOfQueue(); p->hasNext(); p = p->next()) {
     p->print();
     Serial.print(", ");
   }
@@ -59,12 +59,52 @@ void Zackernel::print(char mark) {
   Serial.print('\n');
 }
 
-Schedule* Zackernel::first() {
+Schedule* Zackernel::firstOfQueue() {
   return _queue->next();
 }
 
+Schedule* Zackernel::firstOfSleepQ() {
+  return _sleepQ->next();
+}
+
+Schedule* Zackernel::removeFromQueue() {
+  Schedule *p = firstOfQueue();
+  p->unlink();
+  return p;
+}
+
+Schedule* Zackernel::removeFromSleepQ() {
+  Schedule *p = firstOfSleepQ();
+  p->unlink();
+  return p;
+}
+
+bool Zackernel::queueHasSome() {
+  return firstOfQueue()->hasNext();
+}
+
+bool Zackernel::sleepQHasSome() {
+  return firstOfSleepQ()->hasNext();
+}
+
+unsigned long Zackernel::nextSleepTime() {
+  return firstOfSleepQ()->timeToSleep();  
+}
+
+void Zackernel::wakeUpFirst() {
+  addLast(removeFromSleepQ());
+}
+
+void Zackernel::sleepNext() {
+  if (_isMicros) {
+    delayMicroseconds(nextSleepTime());
+  } else {
+    delay(nextSleepTime());
+  }
+}
+
 void Zackernel::addLast(Schedule* s) {
-  Schedule* p = first();
+  Schedule* p = firstOfQueue();
   while (p->hasNext()) {
     p = p->next();
   }
@@ -84,34 +124,18 @@ void Zackernel::dispatch() {
 }
 
 Schedule* Zackernel::dispatchBody() {
-  if (!first()->hasNext() && !_sleepQ->next()->hasNext()) {
+  if (!queueHasSome() && !sleepQHasSome()) {
     return NULL;
   }
-  while (first()->hasNext() || _sleepQ->next()->hasNext()) {
-    if (first()->hasNext()) {
-      Schedule *p = first();
-      p->unlink();
-      return p;
+  while (queueHasSome() || sleepQHasSome()) {
+    if (queueHasSome()) {
+      return removeFromQueue();
     }
-    if (_sleepQ->next()->hasNext()) {
-      Schedule *p = _sleepQ->next();
-      if (p->hasNext()) {
-        unsigned long timeToSleep = p->timeToSleep();
-        if (timeToSleep == 0) {
-          Schedule* q = p;
-          p = p->next();
-          q->unlink();
-          Zackernel::addLast(q);
-        } else { // timeToSleep != 0
-          if (_isMicros) {
-            delayMicroseconds(p->timeToSleep());
-          } else {
-            delay(p->timeToSleep());
-          }
-          p->unlink();
-          Zackernel::addLast(p);
-        }
+    if (sleepQHasSome()) {
+      if(nextSleepTime() != 0) {
+        sleepNext();        
       }
+      wakeUpFirst();
     }
   }
   return NULL;

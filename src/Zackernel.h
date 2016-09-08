@@ -47,7 +47,15 @@ class Zackernel {
     static volatile bool _dispatching;
     static Schedule* _current;
 
-    static Schedule* first();
+    static Schedule* firstOfQueue();
+    static Schedule* firstOfSleepQ();
+    static Schedule* removeFromQueue();
+    static Schedule* removeFromSleepQ();
+    static bool queueHasSome();
+    static bool sleepQHasSome();
+    static unsigned long nextSleepTime();
+    static void sleepNext();
+    static void wakeUpFirst();
     static void addLast(Schedule* s);
     static Schedule* dispatchBody();
     static Schedule* zForSub(BFunc expr, VFunc cont, VFunc block);
