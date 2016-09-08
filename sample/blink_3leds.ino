@@ -32,45 +32,46 @@ void setup() {
 
   // initializing Zackernel
   Zackernel::init();
-}
 
-// Loop and Fork Tasks for blinking LED1, LED2 and LED3
-void loop() {
   // fork subroutines (blinkLed1, blinkLed2, blinkLed3)
   // these will be running concurrently.
   fork(blinkLed1, [&] { fork(blinkLed2, blinkLed3); });
 }
 
+void loop() {
+  // not use
+}
+
 // Blink LED1 with sleeping and awaking
 void blinkLed1() {
-  digitalWrite(LED1, HIGH);
-  sleep(TIC, [&] {
-     digitalWrite(LED1, LOW);
-     sleep(TIC, [&] {
-       digitalWrite(LED1, HIGH);
-       sleep(TIC, [&] {
-         digitalWrite(LED1, LOW);
-         sleep(TIC, [&] {});
-       });
-     });
+  zLoop([&] {
+    digitalWrite(LED1, HIGH);
+    sleep(TIC, [&] {
+       digitalWrite(LED1, LOW);
+       sleep(TIC, [&] {});
+    });
   });
 }
 
 // Blink LED2 with sleeping and awaking
 void blinkLed2() {
-  digitalWrite(LED2, HIGH);
-  sleep(TIC * 2, [&] {
-     digitalWrite(LED2, LOW);
-     sleep(TIC * 2, [&] {});
+  zLoop([&] {
+    digitalWrite(LED2, HIGH);
+    sleep(TIC * 2, [&] {
+       digitalWrite(LED2, LOW);
+       sleep(TIC * 2, [&] {});
+    });
   });
 }
 
 // Blink LED3 with sleeping and awaking
 void blinkLed3() {
-  digitalWrite(LED3, LOW);
-  sleep(TIC * 2, [&] {
-     digitalWrite(LED3, HIGH);
-     sleep(TIC * 2, [&] {});
+  zLoop([&] {
+    digitalWrite(LED3, LOW);
+    sleep(TIC * 3, [&] {
+       digitalWrite(LED3, HIGH);
+       sleep(TIC * 3, [&] {});
+    });
   });
 }
 

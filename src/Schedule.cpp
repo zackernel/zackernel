@@ -24,114 +24,179 @@ SOFTWARE.
 
 #include <Arduino.h>
 #include <Schedule.h>
+#include <Zackernel.h>
 
-Schedule* Schedule::_queue;
-bool Schedule::_isMicros;
-unsigned long Schedule::_prevTime;
+Schedule Schedule::_schPool[POOL];
+BitMap Schedule::_mapPool(POOL, _buf);;
+unsigned long Schedule::_buf[(POOL + 31) / 32];
 
-void nullFunc() {}
-
-void Schedule::init(bool isMicros) {
-  _isMicros = isMicros;
-  _prevTime = currentTime();
-  _queue = new Schedule(0, nullFunc);
-  _queue->link(new Schedule(ULONG_MAX, nullFunc));
+Schedule::Schedule(ZFunc* function, const char* tag, unsigned long timeToSleep) {
+  _prev = NULL;
+  _next = NULL;
+  _function = function;
+  _toFire = NULL;
+  _timeToSleep = timeToSleep;
+  if (tag == NULL) {
+    _tag[0] = '\0';
+  } else {
+    int i;
+    for (i = 0; i < TAG_LENGTH - 1 && tag[i] != '\0'; i++) {
+      _tag[i] = tag[i];
+    }
+    _tag[i] = '\0';
+  }
 }
 
-bool Schedule::isMicros() {
-  return _isMicros;
+Schedule::Schedule() {
+  _prev = NULL;
+  _next = NULL;
+  _function = NULL;
+  _toFire = NULL;
+  _timeToSleep = 0;
+  _tag[0] = '\0';
 }
 
-unsigned long Schedule::currentTime() {
-  return _isMicros ? micros() : millis();
+void Schedule::init() {
+  ZFunc::init();
+  for (int i = 0; i < POOL; i++) {
+    _mapPool.setBit(i, false);
+  }
 }
 
-Schedule *Schedule::queue() {
-  return _queue;
+Schedule::~Schedule() {
+  this->unlink();
+  delete _function;
 }
 
-Schedule::Schedule(unsigned long delayTime, vl::Func<void(void)> func) {
-  this->_delayTime = delayTime;
-  this->_function = func;
-  this->_prev = NULL;
-  this->_next = NULL;
+void Schedule::insertBefore(Schedule* s) {
+  if (s == NULL || s->_prev != NULL || s->_next != NULL) {
+    // error
+    return;
+  }
+  if (this->_prev != NULL) {
+    Schedule* p = this->_prev;
+    s->_prev = p;
+    p->_next = s;
+    this->_prev = s;
+    s->_next = this;
+  } else { // this->_prev == NULL
+    // error
+    return;
+  }
 }
 
-void Schedule::link(Schedule *next) {
-  this->_next = next;
-  next->_prev = this;
+void Schedule::append(Schedule* s) {
+  if (s == NULL || s->_prev != NULL || s->_next != NULL || this->_next != NULL) {
+    // error
+    return;
+  }
+  this->_next = s;
+  s->_prev = this;
 }
 
-unsigned long Schedule::delayTime() {
-  return _delayTime;
+Schedule* Schedule::unlink() {
+  Schedule* p = _prev;
+  Schedule* n = _next;
+  if (p != NULL) {
+    p->_next = n;
+  }
+  if (n != NULL) {
+    n->_prev = p;
+  }
+  _next = NULL;
+  _prev = NULL;
+  return this;
 }
 
-Schedule *Schedule::first() {
-  return _queue->_next;
+bool Schedule::hasNext() {
+  return _next != NULL;
 }
 
-int Schedule::isEmpty() {
-  return _queue->_next->isEnd();
-}
-
-Schedule *Schedule::next() {
+Schedule* Schedule::next() {
   return _next;
 }
 
-Schedule *Schedule::prev() {
+Schedule* Schedule::prev() {
   return _prev;
 }
 
-void Schedule::wait() {
-  unsigned long current = currentTime();
-  long adjustment = current - _prevTime;
-  long delayTime = this->_delayTime - adjustment;
-  if(delayTime > 0) {
-    if(_isMicros) {
-      delayMicroseconds(delayTime);
-    } else {
-      delay(delayTime);
+Schedule* Schedule::toFire() {
+  return _toFire;
+}
+
+void Schedule::setToFire(Schedule* n) {
+  _toFire = n;
+}
+
+unsigned long Schedule::timeToSleep() {
+  return _timeToSleep;
+}
+
+void Schedule::setTimeToSleep(unsigned long time) {
+  _timeToSleep = time;
+}
+
+void Schedule::setWakeUp(Schedule* waiting) {
+  if (_toFire == NULL) {
+    _toFire = waiting;
+  } else {
+    Schedule* p = _toFire;
+    while (p->_toFire != NULL) {
+      p = p->_toFire;
+    }
+    p->_toFire = waiting;
+  }
+}
+
+void Schedule::wakeUpWaiting() {
+  if (_toFire != NULL) {
+    Schedule* s = _toFire;
+    _toFire = NULL;
+    Zackernel::addLast(s);
+  }
+}
+
+void Schedule::print() {
+  Serial.print(_tag);
+  if (_toFire != NULL) {
+    _toFire->print();
+  }
+}
+
+void Schedule::fire() {
+  if (_function->isBool()) {
+    if ((_function->bfunc())()) {
+      wakeUpWaiting();
+    }
+  } else { // !_function->isBool()
+    (_function->vfunc())();
+    wakeUpWaiting();
+  }
+}
+
+Schedule* Schedule::newVFuncSch(VFunc function, const char* tag, unsigned long timeToSleep) {
+  return new Schedule((new ZFunc())->setVFunc(function), tag, timeToSleep);
+}
+
+Schedule* Schedule::newBFuncSch(BFunc function, const char* tag, unsigned long timeToSleep) {
+  return new Schedule((new ZFunc())->setBFunc(function), tag, timeToSleep);
+}
+
+void* Schedule::operator new(size_t size) {
+  for (int i = 0; i < POOL; i++) {
+    if (!_mapPool.getBit(i)) {
+      _mapPool.setBit(i, true);
+      return &(_schPool[i]);
     }
   }
-  _prevTime = currentTime();
+  return NULL;
 }
 
-void Schedule::call() {
-  _function();
-}
-
-void Schedule::add(unsigned long delayTime, vl::Func<void(void)> func) {
-  Schedule *s;
-  for (s = queue(); delayTime >= s->_delayTime; s = s->_next) {
-    delayTime -= s->_delayTime;
-  }
-  while(s->_delayTime == 0) {
-    s = s->_next;
-  }
-
-  Schedule *n = new Schedule(delayTime, func);
-  Schedule *p = s->_prev;
-  p->link(n);
-  n->link(s);
-  if (!s->isEnd()) {
-    s->_delayTime -= delayTime;
+void Schedule::operator delete(void* p) {
+  for (int i = 0; i < POOL; i++) {
+    if (p == &(_schPool[i])) {
+      _mapPool.setBit(i, false);
+      return;
+    }
   }
 }
-
-Schedule *Schedule::pull() {
-  Schedule *retValue = queue()->_next;
-  if (retValue->isEnd()) {
-     return retValue;
-  }
-  Schedule *p = retValue->_prev;
-  Schedule *n = retValue->_next;
-  p->link(n);
-  retValue->_next = NULL;
-  retValue->_prev = NULL;
-  return retValue;
-}
-
-int Schedule::isEnd() {
-  return (this->_next == NULL);
-}
-
