@@ -30,7 +30,6 @@ volatile bool Zackernel::_dispatching;
 Schedule* Zackernel::_queue;
 Schedule* Zackernel::_sleepQ;
 Schedule* Zackernel::_current;
-Schedule* Zackernel::_waitingIfSleep;
 
 void nullFunction() {}
 
@@ -38,7 +37,6 @@ void Zackernel::init(bool isMicros) {
   Schedule::init();
   _isMicros = isMicros;
   _dispatching = false;
-  _waitingIfSleep = NULL;
   _queue = Schedule::newVFuncSch(nullFunction, "top", 0);
   _queue->append(Schedule::newVFuncSch(nullFunction, "end", ULONG_MAX));
   _sleepQ = Schedule::newVFuncSch(nullFunction, "slTop", 0);
@@ -93,7 +91,6 @@ Schedule* Zackernel::dispatchBody() {
     if (first()->hasNext()) {
       Schedule *p = first();
       p->unlink();
-      _waitingIfSleep = p->toFire();
       return p;
     }
     if (_sleepQ->next()->hasNext()) {
@@ -123,21 +120,15 @@ Schedule* Zackernel::dispatchBody() {
 void Zackernel::sleep(unsigned long timeToSleep, VFunc block) {
   Schedule* p = _sleepQ->next();
   if (!p->hasNext()) {
-    Zackernel::print();
     Schedule* s = Schedule::newVFuncSch(block, "s", timeToSleep);
     if (_current != NULL) {
-      if (_current->toFire() != _waitingIfSleep) {
-        Serial.print("assert\n");
-      }
-      s->setWakeUp(_waitingIfSleep);
-      _waitingIfSleep = NULL;
+      s->setWakeUp(_current->toFire());
       _current->setToFire(NULL);
     }
     p->insertBefore(s);
     if (p->hasNext()) {
       p->setTimeToSleep(timeToSleep - (p->prev())->timeToSleep());
     }
-    Zackernel::print();
     dispatch();
     return;
   }
@@ -147,11 +138,7 @@ void Zackernel::sleep(unsigned long timeToSleep, VFunc block) {
   }
   Schedule* s = Schedule::newVFuncSch(block, "s", timeToSleep);
   if (_current != NULL) {
-    if (_current->toFire() != _waitingIfSleep) {
-      Serial.print("assert\n");
-    }
-    s->setWakeUp(_waitingIfSleep);
-    _waitingIfSleep = NULL;
+    s->setWakeUp(_current->toFire());
     _current->setToFire(NULL);
   }
   p->insertBefore(s);

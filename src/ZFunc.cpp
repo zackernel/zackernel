@@ -55,27 +55,34 @@ void ZFunc::operator delete(void* p) {
 
 ZFunc::ZFunc() {}
 
+ZFunc::~ZFunc() {}
+
+UFunc::UFunc() {}
+
+UFunc::~UFunc() {}
+
+
 bool ZFunc::isBool() {
   return _isBool;
 }
 
 VFunc ZFunc::vfunc() {
-  return _vfunc;
+  return _func._vfunc;
 }
 
 BFunc ZFunc::bfunc() {
-  return _bfunc;
+  return _func._bfunc;
 }
 
 ZFunc* ZFunc::setVFunc(VFunc vfunc) {
   _isBool = false;
-  _vfunc = vfunc;
+  _func._vfunc = vfunc;
   return this;
 }
 
 ZFunc* ZFunc::setBFunc(BFunc bfunc) {
   _isBool = true;
-  _bfunc = bfunc;
+  _func._bfunc = bfunc;
   return this;
 }
 
