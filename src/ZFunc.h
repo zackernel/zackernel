@@ -35,9 +35,18 @@ SOFTWARE.
 typedef vl::Func<void(void)> VFunc;
 typedef vl::Func<bool(void)> BFunc;
 
+union UFunc {
+public:
+  UFunc();
+  ~UFunc();
+  VFunc _vfunc;
+  BFunc _bfunc;  
+};
+
 class ZFunc {
 public:
   ZFunc();
+  ~ZFunc();
   bool isBool();
   VFunc vfunc();
   BFunc bfunc();
@@ -50,8 +59,8 @@ public:
 
 private:
   bool _isBool;
-  VFunc _vfunc;
-  BFunc _bfunc;
+  union UFunc _func;
+
   static ZFunc _funcPool[];
   static BitMap _mapPool;
   static unsigned long _buf[];
