@@ -25,53 +25,53 @@ SOFTWARE.
 #ifndef ZCK_SCHEDULE_H
 #define ZCK_SCHEDULE_H
 
-#include <functional-vlpp.h>
+#ifndef TAG_LENGTH
+#define TAG_LENGTH 8
+#endif
+
+#include <BitMap.h>
+#include <ZFunc.h>
 #include <limits.h>
 
-void nullFunc();
-
 class Schedule {
-  private:
-    static Schedule *_queue;
-    static bool _isMicros;
-    static unsigned long _prevTime;
-    unsigned long _delayTime;
-    Schedule *_prev;
-    Schedule *_next;
-    vl::Func<void(void)> _function;
-
   public:
-    static void init(bool isMicros);
+    void insertBefore(Schedule* s);
+    void append(Schedule* s);
+    Schedule* unlink();
+    bool hasNext();
+    Schedule* next();
+    Schedule* prev();
+    Schedule* toFire();
+    unsigned long timeToSleep();
+    void setTimeToSleep(unsigned long time);
+    void setWakeUp(Schedule* waiting);
+    void wakeUpWaiting();
+    void setToFire(Schedule* t);
+    void fire();
+    void* operator new(size_t size);
+    void operator delete(void* p);
 
-    static bool isMicros();
+    void print();
+    ~Schedule();
 
-    static unsigned long currentTime();
+    static Schedule* newVFuncSch(VFunc function, const char* tag, unsigned long timeToSleep);
+    static Schedule* newBFuncSch(BFunc function, const char* tag, unsigned long timeToSleep);
+    static void init();
 
-    static Schedule *queue();
+  private:
+    Schedule();
+    Schedule(ZFunc* function, const char* tag, unsigned long timeToSleep = 0);
+    Schedule* _prev;
+    Schedule* _next;
+    Schedule* _toFire;
+    ZFunc* _function;
+    unsigned long _timeToSleep;
+    char _tag[TAG_LENGTH];
 
-    static Schedule *first();
-
-    static int isEmpty();
-
-    static void add(unsigned long delayTime, vl::Func<void(void)> func);
-
-    static Schedule *pull();
-
-    Schedule(unsigned long delayTime, vl::Func<void(void)> func);
-
-    void link(Schedule *next);
-
-    unsigned long delayTime();
-
-    Schedule *next();
-
-    Schedule *prev();
-
-    void wait();
-
-    void call();
-
-    int isEnd();
+    static Schedule _schPool[];
+    static unsigned long _buf[];
+    static BitMap _mapPool;
 };
+
 
 #endif // ZCK_SCHEDULE_H

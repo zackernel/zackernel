@@ -25,22 +25,53 @@ SOFTWARE.
 #ifndef ZACKERNEL_H
 #define ZACKERNEL_H
 
-#include <functional-vlpp.h>
-#include <limits.h>
+#include <ZFunc.h>
 #include <Schedule.h>
 
-
 class Zackernel {
-public:
-  static void init(bool isMicros);
+  public:
+    static void init(bool isMicros = false);
+    static void print(char mark = ' ');
+    static void sleep(unsigned long time, VFunc block);
+    static void fork(VFunc block1, VFunc block2);
+    static void zLoop(VFunc block);
+    static void zWhile(BFunc expr, VFunc block);
+    static void zDoWhile(VFunc block, BFunc expr);
+    static void zFor(VFunc init, BFunc expr, VFunc cont, VFunc block);
+    static void dispatch();
+
+  private:
+    static Schedule* _queue;
+    static bool _isMicros;
+    static Schedule* _sleepQ;
+    static volatile bool _dispatching;
+    static Schedule* _current;
+    static unsigned long _prevSleepTime;
+    static bool _haveNotSlept;
+
+    static Schedule* firstOfQueue();
+    static Schedule* firstOfSleepQ();
+    static Schedule* removeFromQueue();
+    static Schedule* removeFromSleepQ();
+    static bool queueHasSome();
+    static bool sleepQHasSome();
+    static unsigned long nextSleepTime();
+    static void sleepNext();
+    static void wakeUpFirst();
+    static void addLast(Schedule* s);
+    static Schedule* dispatchBody();
+    static Schedule* zForSub(BFunc expr, VFunc cont, VFunc block);
+    static void addNewSleep(Schedule* p, unsigned long timeToSleep, VFunc block);
+    static unsigned long currentTime();
+
+    friend void Schedule::wakeUpWaiting();
 };
 
-void printQueue();
-
-void dispatch();
-
-void sleep(unsigned long time, vl::Func<void(void)> func);
-
-void fork(vl::Func<void(void)> func1, vl::Func<void(void)> func2);
+void sleep(unsigned long time, VFunc block);
+void fork(VFunc block1, VFunc block2);
+void zLoop(VFunc block);
+void zWhile(BFunc expr, VFunc block);
+void zDoWhile(VFunc block, BFunc expr);
+void zFor(VFunc init, BFunc expr, VFunc cont, VFunc block);
 
 #endif // ZACKERNEL_H
