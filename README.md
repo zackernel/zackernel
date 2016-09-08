@@ -10,65 +10,35 @@ Zackernel needs the following software:
 
 * [Vlpp](https://github.com/vczh-libraries/Vlpp) ([for Arduino](https://github.com/marcusrugger/functional-vlpp))
 
-## Sample code
+## Milstone History
 
-```c++:blink_3leds.cpp
-#include <Zackernel.h>
+### Code Name "Kagoshima-Chuo": 2016090901
 
-const int LED1 = 9;    // I/O Port of LED 1
-const int LED2 = 10;   // I/O Port of LED 2
-const int LED3 = 11;   // I/O Port of LED 3
+Code Name "Kagoshima-Chuo": Implementing Basic Loop Functions
 
-const unsigned long TIC = 100;   // Unit Time of Blinking (msec)
+Sample Client Code:
 
-void setup() {
-  // setup pinMode of LEDs
-  pinMode(LED1, OUTPUT);
-  pinMode(LED2, OUTPUT);
-  pinMode(LED3, OUTPUT);
+```c++
+zLoop([&] {
+  // calculate something forever with calling other tasks
+});
 
-  // initializing Zackernel (unit time is msec)
-  Zackernel::init(false);
-}
+bool flag = true;
+zWhile([&] { return flag; }, [&] {
+  // calculate something while flag is true with calling other tasks
+});
 
-// Loop and Fork Tasks for blinking LED1, LED2 and LED3
-void loop() {
-  // fork subroutines (blinkLed1, blinkLed2, blinkLed3)
-  // these will be running concurrently.
-  fork(blinkLed1, [&] { fork(blinkLed2, blinkLed3); });
-}
+bool flag = true;
+zDoWhile([&] {
+  // calculate something once and while flag is true with calling other tasks
+}, [&] { return flag; });
 
-// Blink LED1 with sleeping and awaking
-void blinkLed1() {
-  digitalWrite(LED1, HIGH);
-  sleep(TIC, [&] {
-     digitalWrite(LED1, LOW);
-     sleep(TIC, [&] {
-       digitalWrite(LED1, HIGH);
-       sleep(TIC, [&] {
-         digitalWrite(LED1, LOW);
-         sleep(TIC, [&] {});
-       });
-     });
-  });
-}
-
-// Blink LED2 with sleeping and awaking
-void blinkLed2() {
-  digitalWrite(LED2, HIGH);
-  sleep(TIC * 2, [&] {
-     digitalWrite(LED2, LOW);
-     sleep(TIC * 2, [&] {});
-  });
-}
-
-// Blink LED3 with sleeping and awaking
-void blinkLed3() {
-  digitalWrite(LED3, LOW);
-  sleep(TIC * 2, [&] {
-     digitalWrite(LED3, HIGH);
-     sleep(TIC * 2, [&] {});
-  });
-}
+int i;
+zFor([&] { i = 1; }, [&] { i < NUM; }, [&] { i++; }, [&] {
+  // calculate something while i < NUM with calling other tasks.
+});
 ```
 
+### Code Name "Kagoshima": 2016090701
+
+Implementing Absolute Time Management.

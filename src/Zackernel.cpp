@@ -25,35 +25,218 @@ SOFTWARE.
 #include <Zackernel.h>
 #include <Arduino.h>
 
+bool Zackernel::_isMicros;
+volatile bool Zackernel::_dispatching;
+Schedule* Zackernel::_queue;
+Schedule* Zackernel::_sleepQ;
+Schedule* Zackernel::_current;
+Schedule* Zackernel::_waitingIfSleep;
+
+void nullFunction() {}
+
 void Zackernel::init(bool isMicros) {
-  Schedule::init(isMicros);
+  Schedule::init();
+  _isMicros = isMicros;
+  _dispatching = false;
+  _waitingIfSleep = NULL;
+  _queue = Schedule::newVFuncSch(nullFunction, "top", 0);
+  _queue->append(Schedule::newVFuncSch(nullFunction, "end", ULONG_MAX));
+  _sleepQ = Schedule::newVFuncSch(nullFunction, "slTop", 0);
+  _sleepQ->append(Schedule::newVFuncSch(nullFunction, "slEnd", ULONG_MAX));
 }
 
-void printQueue() {
-  Serial.print("q:");
-  for(Schedule *s = Schedule::first(); !(s->isEnd()); s = s->next()) {
-     Serial.print(s->delayTime());
-     Serial.print(','); 
+void Zackernel::print(char mark) {
+  Serial.print(mark);
+  Serial.print(':');
+  for (Schedule* p = first(); p->hasNext(); p = p->next()) {
+    p->print();
+    Serial.print(", ");
+  }
+  Serial.print("sQ:");
+  for (Schedule* p = _sleepQ->next(); p->hasNext(); p = p->next()) {
+    p->print();
+    Serial.print(p->timeToSleep());
+    Serial.print(", ");
   }
   Serial.print('\n');
 }
 
-void dispatch() {
-  while(!Schedule::isEmpty()) {
-    Schedule *s = Schedule::pull();
-    s->wait();
-    s->call();
-    delete s;
-  }  
+Schedule* Zackernel::first() {
+  return _queue->next();
 }
 
-void sleep(int time, vl::Func<void(void)> func) {
-  Schedule::add(time, func);
+void Zackernel::addLast(Schedule* s) {
+  Schedule* p = first();
+  while (p->hasNext()) {
+    p = p->next();
+  }
+  p->insertBefore(s);
+}
+
+void Zackernel::dispatch() {
+  if (_dispatching) {
+    return;
+  }
+  _dispatching = true;
+  while ((_current = dispatchBody()) != NULL) {
+    _current->fire();
+    delete _current;
+  }
+  _dispatching = false;
+}
+
+Schedule* Zackernel::dispatchBody() {
+  if (!first()->hasNext() && !_sleepQ->next()->hasNext()) {
+    return NULL;
+  }
+  while (first()->hasNext() || _sleepQ->next()->hasNext()) {
+    if (first()->hasNext()) {
+      Schedule *p = first();
+      p->unlink();
+      _waitingIfSleep = p->toFire();
+      return p;
+    }
+    if (_sleepQ->next()->hasNext()) {
+      Schedule *p = _sleepQ->next();
+      if (p->hasNext()) {
+        unsigned long timeToSleep = p->timeToSleep();
+        if (timeToSleep == 0) {
+          Schedule* q = p;
+          p = p->next();
+          q->unlink();
+          Zackernel::addLast(q);
+        } else { // timeToSleep != 0
+          if (_isMicros) {
+            delayMicroseconds(p->timeToSleep());
+          } else {
+            delay(p->timeToSleep());
+          }
+          p->unlink();
+          Zackernel::addLast(p);
+        }
+      }
+    }
+  }
+  return NULL;
+}
+
+void Zackernel::sleep(unsigned long timeToSleep, VFunc block) {
+  Schedule* p = _sleepQ->next();
+  if (!p->hasNext()) {
+    Zackernel::print();
+    Schedule* s = Schedule::newVFuncSch(block, "s", timeToSleep);
+    if (_current != NULL) {
+      if (_current->toFire() != _waitingIfSleep) {
+        Serial.print("assert\n");
+      }
+      s->setWakeUp(_waitingIfSleep);
+      _waitingIfSleep = NULL;
+      _current->setToFire(NULL);
+    }
+    p->insertBefore(s);
+    if (p->hasNext()) {
+      p->setTimeToSleep(timeToSleep - (p->prev())->timeToSleep());
+    }
+    Zackernel::print();
+    dispatch();
+    return;
+  }
+  while (p->timeToSleep() <= timeToSleep) {
+    timeToSleep -= p->timeToSleep();
+    p = p->next();
+  }
+  Schedule* s = Schedule::newVFuncSch(block, "s", timeToSleep);
+  if (_current != NULL) {
+    if (_current->toFire() != _waitingIfSleep) {
+      Serial.print("assert\n");
+    }
+    s->setWakeUp(_waitingIfSleep);
+    _waitingIfSleep = NULL;
+    _current->setToFire(NULL);
+  }
+  p->insertBefore(s);
+  if (p->hasNext()) {
+    p->setTimeToSleep(timeToSleep - (p->prev())->timeToSleep());
+  }
   dispatch();
 }
 
-void fork(vl::Func<void(void)> func1, vl::Func<void(void)> func2) {
-  Schedule::add(0, func1);
-  Schedule::add(0, func2);
+void Zackernel::fork(VFunc block1, VFunc block2) {
+  addLast(Schedule::newVFuncSch(block1, "fb1", 0));
+  addLast(Schedule::newVFuncSch(block2, "fb2", 0));
   dispatch();
 }
+
+void Zackernel::zLoop(VFunc block) {
+  Schedule* sBlock = Schedule::newVFuncSch(block, "lb", 0);
+  Schedule* sNext = Schedule::newVFuncSch([=] { Zackernel::zLoop(block); }, "ln", 0);
+  sBlock->setWakeUp(sNext);
+  addLast(sBlock);
+  dispatch();
+}
+
+void Zackernel::zWhile(BFunc expr, VFunc block) {
+  Schedule* sExpr = Schedule::newBFuncSch(expr, "we", 0);
+  Schedule* sBlock = Schedule::newVFuncSch(block, "wb", 0);
+  Schedule* sNext = Schedule::newVFuncSch([=] { Zackernel::zWhile(expr, block); }, "wn", 0);
+  sExpr->setWakeUp(sBlock);
+  sBlock->setWakeUp(sNext);
+  addLast(sExpr);
+  dispatch();
+}
+
+void Zackernel::zDoWhile(VFunc block, BFunc expr) {
+  Schedule* sBlock = Schedule::newVFuncSch(block, "dwb", 0);
+  Schedule* sExpr = Schedule::newBFuncSch(expr, "dwe", 0);
+  Schedule* sNext = Schedule::newVFuncSch([=] { Zackernel::zDoWhile(block, expr); }, "dwn", 0);
+  sBlock->setWakeUp(sExpr);
+  sExpr->setWakeUp(sNext);
+  addLast(sBlock);
+  dispatch();
+}
+
+void Zackernel::zFor(VFunc init, BFunc expr, VFunc cont, VFunc block) {
+  Schedule* sInit = Schedule::newVFuncSch(init, "fi", 0);
+  sInit->setWakeUp(zForSub(expr, cont, block));
+  addLast(sInit);
+  dispatch();
+}
+
+Schedule* Zackernel::zForSub(BFunc expr, VFunc cont, VFunc block) {
+  Schedule* sExpr = Schedule::newBFuncSch(expr, "fe", 0);
+  Schedule* sCont = Schedule::newVFuncSch(cont, "fc", 0);
+  Schedule* sBlock = Schedule::newVFuncSch(block, "fb", 0);
+  Schedule* sNext = Schedule::newVFuncSch([=] {
+    Zackernel::addLast(Zackernel::zForSub(expr, cont, block));
+    Zackernel::dispatch();
+  }, "fn", 0);
+  sExpr->setWakeUp(sBlock);
+  sBlock->setWakeUp(sCont);
+  sCont->setWakeUp(sNext);
+  return sExpr;
+}
+
+void sleep(unsigned long time, VFunc block) {
+  Zackernel::sleep(time, block);
+}
+
+void fork(VFunc block1, VFunc block2) {
+  Zackernel::fork(block1, block2);
+}
+
+void zLoop(VFunc block) {
+  Zackernel::zLoop(block);
+}
+
+void zWhile(BFunc expr, VFunc block) {
+  Zackernel::zWhile(expr, block);
+}
+
+void zDoWhile(VFunc block, BFunc expr) {
+  Zackernel::zDoWhile(block, expr);
+}
+
+void zFor(VFunc init, BFunc expr, VFunc cont, VFunc block) {
+  Zackernel::zFor(init, expr, cont, block);
+}
+
