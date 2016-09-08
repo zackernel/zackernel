@@ -30,6 +30,8 @@ volatile bool Zackernel::_dispatching;
 Schedule* Zackernel::_queue;
 Schedule* Zackernel::_sleepQ;
 Schedule* Zackernel::_current;
+unsigned long Zackernel::_prevSleepTime;
+bool Zackernel::_haveNotSlept;
 
 void nullFunction() {}
 
@@ -41,6 +43,8 @@ void Zackernel::init(bool isMicros) {
   _queue->append(Schedule::newVFuncSch(nullFunction, "end", ULONG_MAX));
   _sleepQ = Schedule::newVFuncSch(nullFunction, "slTop", 0);
   _sleepQ->append(Schedule::newVFuncSch(nullFunction, "slEnd", ULONG_MAX));
+  _prevSleepTime = 0;
+  _haveNotSlept = true;
 }
 
 void Zackernel::print(char mark) {
@@ -88,7 +92,9 @@ bool Zackernel::sleepQHasSome() {
 }
 
 unsigned long Zackernel::nextSleepTime() {
-  return firstOfSleepQ()->timeToSleep();  
+  unsigned long next = firstOfSleepQ()->timeToSleep();
+  unsigned long adjustment = _haveNotSlept ? 0 : currentTime() - _prevSleepTime;
+  return (next >= adjustment) ? (next - adjustment) : 0;  
 }
 
 void Zackernel::wakeUpFirst() {
@@ -96,11 +102,20 @@ void Zackernel::wakeUpFirst() {
 }
 
 void Zackernel::sleepNext() {
-  if (_isMicros) {
-    delayMicroseconds(nextSleepTime());
-  } else {
-    delay(nextSleepTime());
+  unsigned long sleepTime = nextSleepTime();
+  if (sleepTime != 0) {
+    if(_isMicros) {
+      delayMicroseconds(sleepTime);
+    } else {
+      delay(sleepTime);
+    }
   }
+  _haveNotSlept = false;
+  _prevSleepTime = currentTime();
+}
+
+unsigned long Zackernel::currentTime() {
+  return _isMicros ? micros() : millis();
 }
 
 void Zackernel::addLast(Schedule* s) {

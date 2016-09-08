@@ -46,6 +46,8 @@ class Zackernel {
     static Schedule* _sleepQ;
     static volatile bool _dispatching;
     static Schedule* _current;
+    static unsigned long _prevSleepTime;
+    static bool _haveNotSlept;
 
     static Schedule* firstOfQueue();
     static Schedule* firstOfSleepQ();
@@ -60,6 +62,7 @@ class Zackernel {
     static Schedule* dispatchBody();
     static Schedule* zForSub(BFunc expr, VFunc cont, VFunc block);
     static void addNewSleep(Schedule* p, unsigned long timeToSleep, VFunc block);
+    static unsigned long currentTime();
 
     friend void Schedule::wakeUpWaiting();
 };
