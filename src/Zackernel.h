@@ -51,6 +51,7 @@ class Zackernel {
     static void addLast(Schedule* s);
     static Schedule* dispatchBody();
     static Schedule* zForSub(BFunc expr, VFunc cont, VFunc block);
+    static void addNewSleep(Schedule* p, unsigned long timeToSleep, VFunc block);
 
     friend void Schedule::wakeUpWaiting();
 };

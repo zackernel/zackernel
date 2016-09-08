@@ -117,25 +117,7 @@ Schedule* Zackernel::dispatchBody() {
   return NULL;
 }
 
-void Zackernel::sleep(unsigned long timeToSleep, VFunc block) {
-  Schedule* p = _sleepQ->next();
-  if (!p->hasNext()) {
-    Schedule* s = Schedule::newVFuncSch(block, "s", timeToSleep);
-    if (_current != NULL) {
-      s->setWakeUp(_current->toFire());
-      _current->setToFire(NULL);
-    }
-    p->insertBefore(s);
-    if (p->hasNext()) {
-      p->setTimeToSleep(timeToSleep - (p->prev())->timeToSleep());
-    }
-    dispatch();
-    return;
-  }
-  while (p->timeToSleep() <= timeToSleep) {
-    timeToSleep -= p->timeToSleep();
-    p = p->next();
-  }
+void Zackernel::addNewSleep(Schedule* p, unsigned long timeToSleep, VFunc block) {
   Schedule* s = Schedule::newVFuncSch(block, "s", timeToSleep);
   if (_current != NULL) {
     s->setWakeUp(_current->toFire());
@@ -145,6 +127,17 @@ void Zackernel::sleep(unsigned long timeToSleep, VFunc block) {
   if (p->hasNext()) {
     p->setTimeToSleep(timeToSleep - (p->prev())->timeToSleep());
   }
+}
+
+void Zackernel::sleep(unsigned long timeToSleep, VFunc block) {
+  Schedule* p = _sleepQ->next();
+  if(p->hasNext()) {
+    while (p->timeToSleep() <= timeToSleep) {
+      timeToSleep -= p->timeToSleep();
+      p = p->next();
+    }
+  }
+  addNewSleep(p, timeToSleep, block);
   dispatch();
 }
 
