@@ -8,7 +8,7 @@ Now, Zackernel works on the following environments:
 
 Zackernel needs the following software:
 
-* [Vlpp](https://github.com/vczh-libraries/Vlpp) ([for Arduino](https://github.com/marcusrugger/functional-vlpp))
+* [Vlpp for Arduino](https://github.com/marcusrugger/functional-vlpp). (Original Vlpp is [here.](https://github.com/vczh-libraries/Vlpp))
 
 ## Milstone History
 
