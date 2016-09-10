@@ -97,8 +97,9 @@ unsigned long Zackernel::nextSleepTime() {
   if(next >= adjustment) {
     return next - adjustment;
   }
-  Schedule* p = firstOfSleepQ()->next();
-  while(p->hasNext()) { 
+  for(Schedule* p = firstOfSleepQ()->next();
+      p->hasNext();
+      p = p->next()) { 
     adjustment -= next;
     next = p->timeToSleep();
     if(next >= adjustment) {
@@ -106,7 +107,6 @@ unsigned long Zackernel::nextSleepTime() {
       return 0;
     } 
     p->setTimeToSleep(0);
-    p = p->next();
   }
   return 0;  
 }
