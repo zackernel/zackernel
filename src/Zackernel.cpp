@@ -94,7 +94,21 @@ bool Zackernel::sleepQHasSome() {
 unsigned long Zackernel::nextSleepTime() {
   unsigned long next = firstOfSleepQ()->timeToSleep();
   unsigned long adjustment = _haveNotSlept ? 0 : currentTime() - _prevSleepTime;
-  return (next >= adjustment) ? (next - adjustment) : 0;  
+  if(next >= adjustment) {
+    return next - adjustment;
+  }
+  Schedule* p = firstOfSleepQ()->next();
+  while(p->hasNext()) { 
+    adjustment -= next;
+    next = p->timeToSleep();
+    if(next >= adjustment) {
+      p->setTimeToSleep(next - adjustment);
+      return 0;
+    } 
+    p->setTimeToSleep(0);
+    p = p->next();
+  }
+  return 0;  
 }
 
 void Zackernel::wakeUpFirst() {
@@ -147,9 +161,7 @@ Schedule* Zackernel::dispatchBody() {
       return removeFromQueue();
     }
     if (sleepQHasSome()) {
-      if(nextSleepTime() != 0) {
-        sleepNext();        
-      }
+      sleepNext();        
       wakeUpFirst();
     }
   }
@@ -164,7 +176,7 @@ void Zackernel::addNewSleep(Schedule* p, unsigned long timeToSleep, VFunc block)
   }
   p->insertBefore(s);
   if (p->hasNext()) {
-    p->setTimeToSleep(timeToSleep - (p->prev())->timeToSleep());
+    p->setTimeToSleep(p->timeToSleep() - timeToSleep);
   }
 }
 
