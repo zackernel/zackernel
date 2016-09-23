@@ -94,7 +94,21 @@ bool Zackernel::sleepQHasSome() {
 unsigned long Zackernel::nextSleepTime() {
   unsigned long next = firstOfSleepQ()->timeToSleep();
   unsigned long adjustment = _haveNotSlept ? 0 : currentTime() - _prevSleepTime;
-  return (next >= adjustment) ? (next - adjustment) : 0;  
+  if(next >= adjustment) {
+    return next - adjustment;
+  }
+  for(Schedule* p = firstOfSleepQ()->next();
+      p->hasNext();
+      p = p->next()) { 
+    adjustment -= next;
+    next = p->timeToSleep();
+    if(next >= adjustment) {
+      p->setTimeToSleep(next - adjustment);
+      return 0;
+    } 
+    p->setTimeToSleep(0);
+  }
+  return 0;  
 }
 
 void Zackernel::wakeUpFirst() {
@@ -110,8 +124,7 @@ void Zackernel::sleepNext() {
       delay(sleepTime);
     }
   }
-  _haveNotSlept = false;
-  _prevSleepTime = currentTime();
+  updatePrevSleepTime();
 }
 
 unsigned long Zackernel::currentTime() {
@@ -143,17 +156,25 @@ Schedule* Zackernel::dispatchBody() {
     return NULL;
   }
   while (queueHasSome() || sleepQHasSome()) {
+    if (sleepQHasSome()) {
+      if(nextSleepTime() == 0) {
+        wakeUpFirst();
+      }
+    }
     if (queueHasSome()) {
       return removeFromQueue();
     }
     if (sleepQHasSome()) {
-      if(nextSleepTime() != 0) {
-        sleepNext();        
-      }
+      sleepNext();        
       wakeUpFirst();
     }
   }
   return NULL;
+}
+
+void Zackernel::updatePrevSleepTime() {
+  _haveNotSlept = false;
+  _prevSleepTime = currentTime();  
 }
 
 void Zackernel::addNewSleep(Schedule* p, unsigned long timeToSleep, VFunc block) {
@@ -164,7 +185,7 @@ void Zackernel::addNewSleep(Schedule* p, unsigned long timeToSleep, VFunc block)
   }
   p->insertBefore(s);
   if (p->hasNext()) {
-    p->setTimeToSleep(timeToSleep - (p->prev())->timeToSleep());
+    p->setTimeToSleep(p->timeToSleep() - timeToSleep);
   }
 }
 
@@ -177,6 +198,7 @@ void Zackernel::sleep(unsigned long timeToSleep, VFunc block) {
     }
   }
   addNewSleep(p, timeToSleep, block);
+  updatePrevSleepTime();
   dispatch();
 }
 
