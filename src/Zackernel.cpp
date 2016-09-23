@@ -124,8 +124,7 @@ void Zackernel::sleepNext() {
       delay(sleepTime);
     }
   }
-  _haveNotSlept = false;
-  _prevSleepTime = currentTime();
+  updatePrevSleepTime();
 }
 
 unsigned long Zackernel::currentTime() {
@@ -157,6 +156,11 @@ Schedule* Zackernel::dispatchBody() {
     return NULL;
   }
   while (queueHasSome() || sleepQHasSome()) {
+    if (sleepQHasSome()) {
+      if(nextSleepTime() == 0) {
+        wakeUpFirst();
+      }
+    }
     if (queueHasSome()) {
       return removeFromQueue();
     }
@@ -166,6 +170,11 @@ Schedule* Zackernel::dispatchBody() {
     }
   }
   return NULL;
+}
+
+void Zackernel::updatePrevSleepTime() {
+  _haveNotSlept = false;
+  _prevSleepTime = currentTime();  
 }
 
 void Zackernel::addNewSleep(Schedule* p, unsigned long timeToSleep, VFunc block) {
@@ -189,6 +198,7 @@ void Zackernel::sleep(unsigned long timeToSleep, VFunc block) {
     }
   }
   addNewSleep(p, timeToSleep, block);
+  updatePrevSleepTime();
   dispatch();
 }
 
